@@ -5,7 +5,8 @@
 // Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
 
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
 }
 
 datasource db {
@@ -14,7 +15,107 @@ datasource db {
 }
 
 model User {
-  id    Int     @id @default(autoincrement())
-  email String  @unique
-  name  String?
+  id                   String                @id @default(uuid())
+  email                String                @unique
+  firstName            String?
+  lastName             String?
+  passwordHash         String?               @map("password_hash")
+  createdAt            DateTime              @default(now()) @map("created_at")
+  isConfirmed          Boolean               @default(false) @map("is_confirmed")
+  confirmationCode     ConfirmationCode?
+  passwordRecoveryCode PasswordRecoveryCode?
+  device               DeviceAuthSession[]
+  column               Column[]
+  card                 Card[]
+  comment              Comment[]
+  provider             UserProviderInfo[]
+
+  @@map("user")
+}
+
+model UserProviderInfo {
+  id             String  @id @default(uuid()) @map("user_provider_info_id")
+  provider       String
+  userProviderId String  @map("user_provider_id")
+  displayName    String? @map("display_name")
+  email          String?
+  city           String?
+  user           User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId         String?
+
+  @@map("user_provider_info")
+}
+
+model DeviceAuthSession {
+  id             String   @id @default(uuid()) @map("device_auth_session_id")
+  deviceId       String   @map("device_id")
+  ip             String
+  title          String
+  lastActiveDate DateTime @map("last_active_date")
+  expirationDate DateTime @map("expiration_date")
+  User           User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId         String?  @map("user_id")
+
+  @@map("device_auth_session")
+}
+
+model ConfirmationCode {
+  id               String   @id @default(uuid()) @map("confirmation_code_id")
+  confirmationCode String   @unique @map("confirmation_code")
+  expirationDate   DateTime @map("expiration_date")
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId           String   @unique @map("user_id")
+
+  @@map("confirmation_code")
+}
+
+model PasswordRecoveryCode {
+  id             String   @id @default(uuid()) @map("password_recovery_code_id")
+  recoveryCode   String   @unique @map("recovery_code")
+  createdAt      DateTime @default(now()) @map("created_at")
+  expirationDate DateTime @default(dbgenerated("CURRENT_TIMESTAMP + interval '4 hours'")) @map("expiration_date")
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId         String   @unique @map("user_id")
+
+  @@map("password_recovery_code")
+}
+
+model Column {
+  id          String   @id @default(uuid())
+  title       String
+  description String?
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  author      User?    @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  authorId    String
+  card        Card[]
+
+  @@map("column")
+}
+
+model Card {
+  id          String    @id @default(uuid())
+  description String?
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  author      User?     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  authorId    String
+  comment     Comment[]
+  column      Column?   @relation(fields: [columnId], references: [id])
+  columnId    String?
+
+  @@map("card")
+}
+
+model Comment {
+  id          String   @id @default(uuid())
+  description String?
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  author      User?    @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  authorId    String
+  card        Card?    @relation(fields: [cardId], references: [id])
+  cardId      String?
+
+  @@map("comment")
 }
