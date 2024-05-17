@@ -1,0 +1,6 @@
+export enum NodeEnv {
+  PRODUCTION = 'PRODUCTION',
+  STAGING = 'STAGING',
+  DEVELOPMENT = 'DEVELOPMENT',
+  TESTING = 'TESTING',
+}
